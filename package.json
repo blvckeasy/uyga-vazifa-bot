@@ -1,0 +1,22 @@
+{
+  "name": "uyga-vazifa-bot",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./src/server.js",
+    "dev": "nodemon ./src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.1",
+    "node-fetch": "^3.2.5",
+    "node-telegram-bot-api": "^0.57.0",
+    "pg": "^8.7.3",
+    "request": "^2.88.2"
+  }
+}
