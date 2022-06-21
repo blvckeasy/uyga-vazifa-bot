@@ -1,3 +1,4 @@
+// is written to use functions instead of future queries 😄
 class Queries {
   getUsers(returnedArr = [], conditionsObj = {}, tableName) {
 

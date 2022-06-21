@@ -1,101 +1,104 @@
-import { db_fetch, db_fetchAll } from './utils/pg.js'
 import TelegramBot from 'node-telegram-bot-api'
-import Queries from '../sql/database.js'
-import fetch from 'node-fetch'
-import request from 'request'
-import path from 'path'
-import fs from 'fs'
+import { messageFunction, authorizationFunction } from './controller/text.js'
+import { textMiddleware } from './middleware/text.js';
+import { upload,sendHomework } from './controller/document.js'
+import { callback_query } from '../config.js'
 
 const token = '5510818167:AAE3LxifhKSRbP_IaWAi6lB3xRhFtjNyV14'
 const bot = new TelegramBot(token, {
   polling: true,
   updates: {
-    enabled: true
+    enabled: true,
+  },
+})
+let [question, offer, homework, confirmed, reject] = [false, false, false, false, false]
+
+
+bot.on('message', async msg => {
+  try {
+    textMiddleware(msg, bot).then((err) => console.log(err))
+  } catch (error) {
+    console.log(error)
   }
 })
 
-const download = (url, path, callback) => {
-  request.head(url, () => {
-    request(url).pipe(fs.createWriteStream(path)).on('close', callback);
-  });
-};
-
-bot.on('message', async (msg) => {
+bot.on('text', async msg => {
   try {
-    const group_id = msg.chat.id
+    if (msg.from.is_bot) throw new Error('You are bot -_-')
+    if (!question && !offer && !homework) authorizationFunction(msg, bot)
+    if (question) messageFunction(msg, bot, 'question', "36 soat ichida ustoz tarafidan javob keladi.")
+    if (offer) messageFunction(msg, bot, 'offer', "Taklifingiz uchun raxmat :)")
+  } catch (error) {
+    console.error(1, error.message)
+  }
+})
 
-    if (msg.from.id == msg.chat.id) return 
-    if (group_id) {
-      await db_fetch(`
-        INSERT INTO groups (group_id, group_title, group_link, chat_type)
-          VALUES ($1, $2, $3, $4) returning *;  
-      `, msg.chat.id, msg.chat.title, msg.chat.username || null, msg.chat.type)
+bot.on('document', async document => {
+  try {
+    if (homework) {
+
+      const opts = {
+        inline_keyboard: [
+          [
+            { text: 'Tasdiqlash', callback_data: 'confirmed' },
+            { text: 'Rad etish', callback_data: 'reject' },
+          ],
+        ],
+      }
+
+      bot.sendDocument(document.chat.id, document.document.file_id, {
+        caption: "tasdiqlansinmi ?",
+        reply_markup: JSON.stringify(opts)
+      }) 
     }
   } catch (error) {
     console.log(error.message)
   }
 })
 
-bot.on('text', async (msg) => {
+bot.on('callback_query', async callbackQuery => {
   try {
-    if (msg.from.is_bot) throw new Error('You are robot -_-')
-    if (msg.from.id != msg.chat.id) return
+    let selection = ''
+    if (callbackQuery.data == 'question') [question, offer, homework, selection] = [true, false, false, 'question']
+    if (callbackQuery.data == 'offer')    [question, offer, homework, selection] = [false, true, false, 'offer']
+    if (callbackQuery.data == 'homework') [question, offer, homework, selection] = [false, false, true, 'homework']
+    if (callbackQuery.data == 'cancel')   [question, offer, homework, selection] = [false, false, false, 'cancel']
 
-    const groups = await db_fetchAll(`SELECT * FROM groups WHERE table_deleted_at is null;`)
-    const groups_id = groups.map((obj) => obj.group_id)
-    const user_id = msg.from.id
-    let is_group_member = false
+    // buttons entered after sending the task
+    if (callbackQuery.data == 'confirmed') {
+      selection = 'confirmed'
+      if (!callbackQuery.message.from.is_bot || callbackQuery.message.from.id < 0) 
+        throw new Error('File upload is not for super group!')
 
-    const groups_member = await Promise.all(groups_id.map(async (group_id) => {
-      try {
-        const data = {
-          [group_id]: await bot.getChatMember(group_id, user_id)
-        }
-        is_group_member = true
-        return data
-      } catch (error) {
-        return {
-          [group_id]: undefinedN
-        }
-      }      
-    }))
-
-    console.log(groups_member)
-    console.log(is_group_member)
-
-    if (is_group_member && msg.text == '/start') {
-      bot.sendMessage(msg.chat.id, '')
-
-    } else {
-      bot.sendMessage(msg.chat.id, 'Guruhlardan topilmadingiz.')
+      const file_info = await upload(callbackQuery.message, token)
+      const response = await sendHomework(callbackQuery.message, file_info)  
+      
+      if (response.error.includes("duplicate key value violates unique constraint")) 
+        throw new Error("file already uploaded!") // Client Error
+      
     }
+    if (callbackQuery.data == 'reject') [confirmed, reject, selection] = [false, true, 'reject']
 
+
+    bot.answerCallbackQuery(callbackQuery.id).then(() => bot.sendMessage(callbackQuery.message.chat.id, callback_query[selection], {
+        parse_mode: "HTML"
+    }))
   } catch (error) {
-    console.error(1, error.message)
+    console.log('>_<\n', error)
   }
 })
 
-bot.on('document', async (document) => {
-    try {
-      if (document.from.is_bot) throw new Error('You are robot -_-')
-      if (document.from.id != document.chat.id) return
 
-      const fileId = document.document.file_id
-      const file_name = `${Date.now() % 100000}${document.document.file_name.replace(/\s/g, '_')}`
-      const res = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`)
-      const file_path = (await res.json()).result.file_path
-      const downloadURL = `https://api.telegram.org/file/bot${token}/${file_path}`
 
-      if (file_name == 'package.json') throw new Error(`package.json file doesn't send!`)
 
-      download(downloadURL, path.join(process.cwd(), 'uploads', file_name), () => {
-        console.log('Done !')
-      })
-    } catch (error) {
-      bot.sendMessage(document.chat.id, 'ERROR: ' + error.message)
-    }
-  }
-)
+
+
+
+
+
+
+
+
 
 
 
@@ -128,13 +131,11 @@ bot.on('document', async (document) => {
 //   // console['log'](1, msg.chat.id)
 // })
 
-
 // bot.on("callback_query", async (callbackQuery) => {
 //   const msg = callbackQuery.message;
 //   bot.answerCallbackQuery(callbackQuery.id)
 //       .then(() => bot.sendMessage(msg.chat.id, "You clicked!"));
 // });
-
 
 // bot.on('edited_message', (msg) => {
 //   console.log(2, msg)

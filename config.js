@@ -14,7 +14,16 @@ const mime_types = {
   // img: 
 }
 
+const callback_query = {
+  question: `<b>Savolingizni yuboring.</b>\n<b><i>pov:</i></b> savolni quyidagicha ko'rinishda yuboring: \n<i>#savol: Bugun ob havo qanday?</i>`,
+  homework: `Uyga vazifani file korinshida tashlang.`,
+  offer: `Taklifingizni yozing.`,
+  cancel: `Successfully cancelled.`,
+  confirmed: `Tasdiqlandi. 36 soat ichida tekshirilinadi.`,
+  reject: `Bekor qilindi.`
+}
 
-export default {
+export {
   mime_types,
+  callback_query
 }
