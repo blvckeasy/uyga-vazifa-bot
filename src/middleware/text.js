@@ -1,6 +1,6 @@
-import { db_fetch, db_fetchAll } from '../utils/pg.js'
+import { db_fetch } from '../utils/pg.js'
 
-const textMiddleware = async (msg, bot) => {
+const textMiddleware = async (msg) => {
   try {
     const group_id = msg.chat.id
 
@@ -18,7 +18,8 @@ const textMiddleware = async (msg, bot) => {
       )
     }
   } catch (error) {
-    return error.message
+    console.log('middleware/text -> textMiddleware', error.message)
+    return { error: error.message } // Client error
   }
 }
 

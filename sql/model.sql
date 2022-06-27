@@ -7,6 +7,7 @@ create table if not exists users (
   first_name varchar,
   last_name varchar,
   username varchar,
+  user_type varchar not null default 'user',
   user_created_at timestamp default CURRENT_TIMESTAMP,
   user_updated_at timestamp default CURRENT_TIMESTAMP,
   user_deleted_at timestamp default null

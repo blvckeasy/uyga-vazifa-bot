@@ -14,7 +14,7 @@ const upload = async (document, token, callback = () => console.log('Done!')) =>
     download(downloadURL, path.join(process.cwd(), 'uploads', file_name), callback)
     return [file_name, file_path]
   } catch (error) {
-    console.log(123, error)
+    return { error: error.message }  // Server error
   }
 }
 
@@ -24,10 +24,11 @@ const sendHomework = async (document, [file_name, file_path]) => {
       INSERT INTO files (user_id, file_id, file_orginal_name, file_name, file_path, mimetype, file_send_time, file_size, file_caption)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;
     `, document.chat.id, document.document.file_id, document.document.file_name, file_name, file_path, document.document.mime_type, document.date, document.document.file_size, document.caption)
-    
+ 
     return { data }
   } catch (error) {
-    return { error: error.message }
+    console.log('document -> upload', error.message)
+    return { error: error.message }  // Client error
   }
 }
 

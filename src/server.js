@@ -52,7 +52,7 @@ bot.on('document', async document => {
       }) 
     }
   } catch (error) {
-    console.log(error.message)
+    console.error(error.message)
   }
 })
 
@@ -84,63 +84,6 @@ bot.on('callback_query', async callbackQuery => {
         parse_mode: "HTML"
     }))
   } catch (error) {
-    console.log('>_<\n', error)
+    console.log('server.js -> callback_query: \n', error)
   }
 })
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// bot.on('text', async (msg) => {
-//   const chatId = msg.chat.id
-//   const res = await bot.sendMessage(chatId, 'SALOM')
-//   const messageId = res.message_id
-
-//   const message = 'its edited'
-//   const opts = {
-//         inline_keyboard: [[
-//           {text: 'Add Option', callback_data: 'addOption'},
-//           {text: 'Send', callback_data: 'send'},
-//           {text: 'Delete', callback_data: 'delete'}
-//           ]]
-//    }
-//   bot.editMessageText(message, {
-//      chat_id: chatId,
-//      message_id: messageId,
-//      reply_markup: JSON.stringify(opts  ),
-//   });
-
-//   // console['log'](1, msg.chat.id)
-// })
-
-// bot.on("callback_query", async (callbackQuery) => {
-//   const msg = callbackQuery.message;
-//   bot.answerCallbackQuery(callbackQuery.id)
-//       .then(() => bot.sendMessage(msg.chat.id, "You clicked!"));
-// });
-
-// bot.on('edited_message', (msg) => {
-//   console.log(2, msg)
-// })
-
-// bot.on('sticker', s => {
-//   console.log(3, s)
-// })

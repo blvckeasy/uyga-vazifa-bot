@@ -36,8 +36,7 @@ const authorizationFunction = async (msg, bot) => {
       }
 
       const found_user = await db_fetch(
-        `
-        SELECT * FROM users WHERE user_id = $1 and user_deleted_at is null;
+        `SELECT * FROM users WHERE user_id = $1 and user_deleted_at is null;
       `,
         user_id
       )
@@ -74,10 +73,7 @@ const authorizationFunction = async (msg, bot) => {
       bot.sendMessage(chat_id, 'Guruhlardan topilmadingiz.')
     }
   } catch (error) {
-    console.log(error)
-    return {
-      error
-    }
+    return { error } // Client error
   }
 }
 
@@ -90,8 +86,8 @@ const messageFunction = async (msg, bot, message_type, send_message_text) => {
     `, msg.message_id, msg.from.id, msg.from.first_name, msg.from.last_name, msg.from.username, message_type, msg.text)
 
     bot.sendMessage(msg.chat.id, send_message_text)
-  } catch (error) {
-    console.log(error)
+  } catch (error) { 
+    return { error: error.message }  // Client error
   }
 }
 

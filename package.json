@@ -17,6 +17,7 @@
     "node-fetch": "^3.2.5",
     "node-telegram-bot-api": "^0.57.0",
     "pg": "^8.7.3",
+    "qrcode": "^1.5.0",
     "request": "^2.88.2"
   }
 }
