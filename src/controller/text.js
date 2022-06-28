@@ -35,26 +35,6 @@ const authorizationFunction = async (msg, bot) => {
         bot.sendMessage(chat_id, 'welcome')
       }
 
-      const found_user = await db_fetch(
-        `SELECT * FROM users WHERE user_id = $1 and user_deleted_at is null;
-      `,
-        user_id
-      )
-
-      if (!found_user) {
-        const user = await db_fetch(
-          `
-          INSERT INTO users (user_id, chat_id, first_name, last_name, username)
-            VALUES ($1, $2, $3, $4, $5) RETURNING *;
-        `,
-          user_id,
-          chat_id,
-          msg.from.first_name,
-          msg.from.last_name,
-          msg.from.username
-        )
-      }
-
       const opts = {
         inline_keyboard: [
           [

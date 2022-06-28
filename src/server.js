@@ -1,8 +1,9 @@
 import TelegramBot from 'node-telegram-bot-api'
 import { messageFunction, authorizationFunction } from './controller/text.js'
-import { textMiddleware } from './middleware/text.js';
+import { textMiddleware } from './middleware/text.js'
 import { upload,sendHomework } from './controller/document.js'
 import { callback_query } from '../config.js'
+import { getRequests } from './table/request.js'
 
 const token = '5510818167:AAE3LxifhKSRbP_IaWAi6lB3xRhFtjNyV14'
 const bot = new TelegramBot(token, {
@@ -11,32 +12,34 @@ const bot = new TelegramBot(token, {
     enabled: true,
   },
 })
+
 let [question, offer, homework, confirmed, reject] = [false, false, false, false, false]
 
 
 bot.on('message', async msg => {
   try {
-    textMiddleware(msg, bot).then((err) => console.log(err))
+    const err = await textMiddleware(msg, bot)
+    if (err) throw new Error()
   } catch (error) {
-    console.log(error)
+    console.error('server -> message:', error)
   }
 })
 
 bot.on('text', async msg => {
   try {
+    
     if (msg.from.is_bot) throw new Error('You are bot -_-')
     if (!question && !offer && !homework) authorizationFunction(msg, bot)
     if (question) messageFunction(msg, bot, 'question', "36 soat ichida ustoz tarafidan javob keladi.")
     if (offer) messageFunction(msg, bot, 'offer', "Taklifingiz uchun raxmat :)")
   } catch (error) {
-    console.error(1, error.message)
+    console.error('server -> text:', error.message)
   }
 })
 
 bot.on('document', async document => {
   try {
     if (homework) {
-
       const opts = {
         inline_keyboard: [
           [
@@ -52,7 +55,7 @@ bot.on('document', async document => {
       }) 
     }
   } catch (error) {
-    console.error(error.message)
+    console.error('server -> document:', error.message)
   }
 })
 
@@ -73,17 +76,17 @@ bot.on('callback_query', async callbackQuery => {
       const file_info = await upload(callbackQuery.message, token)
       const response = await sendHomework(callbackQuery.message, file_info)  
       
-      if (response.error.includes("duplicate key value violates unique constraint")) 
-        throw new Error("file already uploaded!") // Client Error
+      if (response.error?.includes("duplicate key value violates unique constraint")) 
+        throw new Error(response.error) // Client Error "file already uploaded!"
       
     }
     if (callbackQuery.data == 'reject') [confirmed, reject, selection] = [false, true, 'reject']
 
-
-    bot.answerCallbackQuery(callbackQuery.id).then(() => bot.sendMessage(callbackQuery.message.chat.id, callback_query[selection], {
+    await bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id)
+    await bot.answerCallbackQuery(callbackQuery.id).then(() => bot.sendMessage(callbackQuery.message.chat.id, callback_query[selection], {
         parse_mode: "HTML"
     }))
   } catch (error) {
-    console.log('server.js -> callback_query: \n', error)
+    console.error('server.js -> callback_query:', error)
   }
 })

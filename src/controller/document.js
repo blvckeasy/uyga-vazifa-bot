@@ -14,6 +14,7 @@ const upload = async (document, token, callback = () => console.log('Done!')) =>
     download(downloadURL, path.join(process.cwd(), 'uploads', file_name), callback)
     return [file_name, file_path]
   } catch (error) {
+    console.error("document -> upload:", error.message)
     return { error: error.message }  // Server error
   }
 }
@@ -27,7 +28,7 @@ const sendHomework = async (document, [file_name, file_path]) => {
  
     return { data }
   } catch (error) {
-    console.log('document -> upload', error.message)
+    console.error('document -> sendhomework:', error.message)
     return { error: error.message }  // Client error
   }
 }
