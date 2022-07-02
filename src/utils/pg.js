@@ -29,6 +29,14 @@ async function db_fetchAll (query, ...params) {
 	}
 }
 
+;(async function ConnectionSettings() {
+	try {
+		await db_fetch(`SET client_encoding = 'UTF8';`)
+	} catch (error) {
+		return { error: error.message }
+	}
+})()
+
 export {
 	db_fetchAll,
 	db_fetch,

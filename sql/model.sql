@@ -17,11 +17,6 @@ create table if not exists users (
 drop table if exists requests cascade;
 create table if not exists requests (
   user_id bigint not null unique references users(user_id),
-  question boolean not null default false,
-  offer boolean not null default false,
-  homework boolean not null default false,
-  confirmed boolean not null default false,
-  reject boolean not null default false,
   selection varchar,
   request_created_at timestamp default CURRENT_TIMESTAMP,
   request_updated_at timestamp default CURRENT_TIMESTAMP,

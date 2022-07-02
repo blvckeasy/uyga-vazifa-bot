@@ -11,15 +11,21 @@ const upload = async (document, token, callback = () => console.log('Done!')) =>
     const file_path = (await res.json()).result.file_path
     const downloadURL = `https://api.telegram.org/file/bot${token}/${file_path}`
 
-    download(downloadURL, path.join(process.cwd(), 'uploads', file_name), callback)
-    return [file_name, file_path]
+    download(downloadURL, path.join(process.cwd(), 'uploads', file_name), (data) => {
+      console.log('\n\nanu callback:', data)
+    })
+    
+    const { error, data } = await insertFileInfo(document, [file_name, file_path])
+    if (error?.includes("duplicate key value violates unique constraint")) error.message = "file already uploaded!";
+    
+    return { data, error }
   } catch (error) {
     console.error("document -> upload:", error.message)
     return { error: error.message }  // Server error
   }
 }
 
-const sendHomework = async (document, [file_name, file_path]) => {
+const insertFileInfo = async (document, [file_name, file_path]) => {
   try {
     const data = await db_fetch(`
       INSERT INTO files (user_id, file_id, file_orginal_name, file_name, file_path, mimetype, file_send_time, file_size, file_caption)
@@ -35,5 +41,5 @@ const sendHomework = async (document, [file_name, file_path]) => {
 
 export {
   upload,
-  sendHomework,
+  insertFileInfo,
 }

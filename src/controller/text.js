@@ -1,5 +1,5 @@
 import { db_fetch, db_fetchAll } from '../utils/pg.js'
-
+import { updateRequestSelection } from "../table/request.js"
 
 const authorizationFunction = async (msg, bot) => {
   try {
@@ -36,11 +36,11 @@ const authorizationFunction = async (msg, bot) => {
       const opts = {
         inline_keyboard: [
           [
-            { text: 'Savol', callback_data: 'question' },
-            { text: 'Taklif', callback_data: 'offer' },
-            { text: 'Uyga vazifa', callback_data: 'homework' },
+            { text: 'Savol ❓', callback_data: 'question' },
+            { text: 'Taklif ➕', callback_data: 'offer' },
+            { text: 'Uyga vazifa 🏘', callback_data: 'homework' },
           ],
-          [{ text: 'Bekor qilish', callback_data: 'cancel' }]
+          [{ text: 'Bekor qilish ❌', callback_data: 'cancel' }]
         ],
       }
 
@@ -59,11 +59,12 @@ const messageFunction = async (msg, bot, message_type, send_message_text) => {
   try {
     await db_fetch(`
       insert into messages 
-        (message_id, user_id, first_name, last_name, username, message_type, message_text) 
+        (message_id, user_id, first_name, last_name, username, message_type, message_text)
       values ($1, $2, $3, $4, $5, $6, $7) returning *;
     `, msg.message_id, msg.from.id, msg.from.first_name, msg.from.last_name, msg.from.username, message_type, msg.text)
 
     await bot.sendMessage(msg.chat.id, send_message_text)
+    await updateRequestSelection(msg.chat.id)
   } catch (error) { 
     return { error: error.message }  // Client error
   }
