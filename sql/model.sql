@@ -1,9 +1,10 @@
 create database foundation_homeworks;
+SET client_encoding = 'UTF8';
 
 drop table if exists users cascade;
 create table if not exists users (
-  user_id int not null unique primary key,
-  chat_id int not null unique, 
+  user_id bigint not null unique primary key,
+  chat_id bigint not null unique, 
   first_name varchar,
   last_name varchar,
   username varchar,
@@ -15,7 +16,7 @@ create table if not exists users (
 
 drop table if exists requests cascade;
 create table if not exists requests (
-  user_id int not null unique references users(user_id),
+  user_id bigint not null unique references users(user_id),
   question boolean not null default false,
   offer boolean not null default false,
   homework boolean not null default false,
@@ -29,14 +30,14 @@ create table if not exists requests (
 
 drop table if exists files cascade;
 create table if not exists files (
-  user_id int not null references users(user_id),
+  user_id bigint not null references users(user_id),
   file_id varchar not null unique primary key,
   file_orginal_name varchar not null,
   file_name varchar not null,
   file_path varchar not null,
   mimetype varchar not null,
-  file_send_time int not null,
-  file_size int not null,
+  file_send_time bigint not null,
+  file_size bigint not null,
   file_caption varchar,
   score smallint default -1,
   is_confirmed boolean default false,

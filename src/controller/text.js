@@ -7,16 +7,14 @@ const authorizationFunction = async (msg, bot) => {
     const user_id = msg.from.id
     let is_group_member = false
     
-    if (user_id != chat_id) return
+      if (user_id != chat_id) return
     
-    const groups = await db_fetchAll(
-      `SELECT * FROM groups WHERE group_deleted_at is null;`
-      )
+    const groups = await db_fetchAll(`SELECT * FROM groups WHERE group_deleted_at is null;`)
     const groups_id = groups.map(obj => obj.group_id)
     
-    const groups_member = await Promise.all(
+    await Promise.all(
       groups_id.map(async group_id => {
-        try {
+        try {9
           const data = {
             [group_id]: await bot.getChatMember(group_id, user_id),
           }
@@ -46,11 +44,11 @@ const authorizationFunction = async (msg, bot) => {
         ],
       }
 
-      bot.sendMessage(chat_id, `qanday turdagi malumot yubormoxchisiz ?`, {
+      await bot.sendMessage(chat_id, `Qanday turdagi malumot yubormoxchisiz ?`, {
         reply_markup: JSON.stringify(opts),
       })
     } else {
-      bot.sendMessage(chat_id, 'Guruhlardan topilmadingiz.')
+      await bot.sendMessage(chat_id, 'Guruhlardan topilmadingiz.')
     }
   } catch (error) {
     return { error } // Client error
@@ -59,13 +57,13 @@ const authorizationFunction = async (msg, bot) => {
 
 const messageFunction = async (msg, bot, message_type, send_message_text) => {
   try {
-    const message = await db_fetch(`
+    await db_fetch(`
       insert into messages 
         (message_id, user_id, first_name, last_name, username, message_type, message_text) 
       values ($1, $2, $3, $4, $5, $6, $7) returning *;
     `, msg.message_id, msg.from.id, msg.from.first_name, msg.from.last_name, msg.from.username, message_type, msg.text)
 
-    bot.sendMessage(msg.chat.id, send_message_text)
+    await bot.sendMessage(msg.chat.id, send_message_text)
   } catch (error) { 
     return { error: error.message }  // Client error
   }
