@@ -35,7 +35,7 @@ const textMiddleware = async (msg) => {
     return { status: 200 }
   } catch (error) {
     console.error('middleware/text -> textMiddleware:', error.message)
-    return { error: error.message } // Client error
+    return { error: error.message } 
   }
 }
 

@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "dateformat": "^5.0.3",
     "dotenv": "^16.0.1",
     "node-fetch": "^3.2.5",
     "node-telegram-bot-api": "^0.57.0",

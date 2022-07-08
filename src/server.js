@@ -1,11 +1,12 @@
 import TelegramBot from "node-telegram-bot-api"
-import { messageFunction, authorizationFunction } from "./controller/text.js"
+import { messageFunction, authorizationFunction, listRouteOpts, updatePageAndLimit } from "./controller/text.js"
+import { getRequest, updateRequestSelection } from "./table/request.js"
 import { textMiddleware } from "./middleware/text.js"
 import { upload } from "./controller/document.js"
 import { callback_query } from "../config.js"
-import { getRequest, updateRequestSelection } from "./table/request.js"
 
-const token = "5510818167:AAE3LxifhKSRbP_IaWAi6lB3xRhFtjNyV14"
+
+const token = process.env.TOKEN
 const bot = new TelegramBot(token, {
   polling: true,
   updates: {
@@ -62,7 +63,10 @@ bot.on("document", async document => {
 
 bot.on("callback_query", async (callbackQuery) => {
   try {
-    const user_id = callbackQuery.message.chat.id
+    const user_id = callbackQuery.from.id
+    const chat_id = callbackQuery.message.chat.id
+    const message_id = callbackQuery.message.message_id
+    const message = callbackQuery.message.text
     await updateRequestSelection(user_id, callbackQuery.data)
 
     // buttons entered after sending the task
@@ -75,11 +79,62 @@ bot.on("callback_query", async (callbackQuery) => {
       await updateRequestSelection(user_id)
     }
 
-    await bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id)
-    await bot.answerCallbackQuery(callbackQuery.id).then(() => bot.sendMessage(callbackQuery.message.chat.id, callback_query[callbackQuery.data], {
-        parse_mode: "HTML"
-    }))
+    if (callbackQuery.data == "user_uploaded_files") {
+      console.log(callbackQuery)
+    }
+
+    if (callbackQuery.data == "list_next") {
+      const { list_page: page } = await getRequest(user_id)
+      await updatePageAndLimit(user_id, page + 1)
+      const { opts } = await listRouteOpts(user_id, chat_id)
+
+
+      await bot.editMessageText(message, {
+        chat_id: chat_id,
+        message_id: message_id,
+        reply_markup: opts,
+     })
+  
+      await updateRequestSelection(user_id)
+    }
+
+    if (callbackQuery.data == "list_prev") {
+      const { list_page: page } = await getRequest(user_id)
+      await updatePageAndLimit(user_id, page - 1)
+      const { opts } = await listRouteOpts(user_id, chat_id)
+
+
+      await bot.editMessageText(message, {
+        chat_id: chat_id,
+        message_id: message_id,
+        reply_markup: opts,
+     })
+      await updateRequestSelection(user_id)
+    }
+
+
+    if (callback_query[callbackQuery.data]) {
+      await bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id)
+      await bot.answerCallbackQuery(callbackQuery.id).then(() => bot.sendMessage(callbackQuery.message.chat.id, callback_query[callbackQuery.data], {
+          parse_mode: "HTML"
+      }))
+    }
+
   } catch (error) {
     console.error("server.js -> callback_query:", error)
   }
 })
+
+
+
+
+// const func = (d) => {
+//   const date = new Date(d) 
+//   console.log(date.getFullYear() + ':' + String(date.getMonth() - 1).padStart(2, '0') + ':' + String(date.getDate()).padStart(2, '0')) 
+  
+// }
+// import dateFormat from 'dateformat';
+// var now = new Date();
+// const a = dateFormat(1657010472, "dddd, mmmm dS, yyyy, h:MM:ss TT");
+// console.log(a)
+// func(Date.now())

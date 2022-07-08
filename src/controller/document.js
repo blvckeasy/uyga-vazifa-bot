@@ -28,14 +28,14 @@ const upload = async (document, token, callback = () => console.log('Done!')) =>
 const insertFileInfo = async (document, [file_name, file_path]) => {
   try {
     const data = await db_fetch(`
-      INSERT INTO files (user_id, file_id, file_orginal_name, file_name, file_path, mimetype, file_send_time, file_size, file_caption)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;
-    `, document.chat.id, document.document.file_id, document.document.file_name, file_name, file_path, document.document.mime_type, document.date, document.document.file_size, document.caption)
+      INSERT INTO files (user_id, file_id, file_orginal_name, file_name, file_path, mimetype, file_size, file_caption)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;
+    `, document.chat.id, document.document.file_id, document.document.file_name, file_name, file_path, document.document.mime_type, document.document.file_size, document.caption)
  
     return { data }
   } catch (error) {
     console.error('document -> sendhomework:', error.message)
-    return { error: error.message }  // Client error
+    return { error: error.message } 
   }
 }
 

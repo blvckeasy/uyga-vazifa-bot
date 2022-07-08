@@ -9,8 +9,8 @@ create table if not exists users (
   last_name varchar,
   username varchar,
   user_type varchar not null default 'user',
-  user_created_at timestamp default CURRENT_TIMESTAMP,
-  user_updated_at timestamp default CURRENT_TIMESTAMP,
+  user_created_at timestamp default localtimestamp,
+  user_updated_at timestamp default localtimestamp,
   user_deleted_at timestamp default null
 );
 
@@ -18,8 +18,10 @@ drop table if exists requests cascade;
 create table if not exists requests (
   user_id bigint not null unique references users(user_id),
   selection varchar,
-  request_created_at timestamp default CURRENT_TIMESTAMP,
-  request_updated_at timestamp default CURRENT_TIMESTAMP,
+  list_page int not null default 1,
+  list_limit int not null default 5,
+  request_created_at timestamp default localtimestamp,
+  request_updated_at timestamp default localtimestamp,
   request_deleted_at timestamp default null
 );
 
@@ -31,14 +33,13 @@ create table if not exists files (
   file_name varchar not null,
   file_path varchar not null,
   mimetype varchar not null,
-  file_send_time bigint not null,
   file_size bigint not null,
   file_caption varchar,
   score smallint default -1,
   is_confirmed boolean default false,
   is_checked boolean default false,
-  file_created_at timestamp default CURRENT_TIMESTAMP,
-  file_updated_at timestamp default CURRENT_TIMESTAMP,
+  file_created_at timestamp default localtimestamp,
+  file_updated_at timestamp default localtimestamp,
   file_deleted_at timestamp default null
 );
 
@@ -48,8 +49,8 @@ create table if not exists groups(
   group_title varchar not null, 
   group_link varchar,
   chat_type varchar,
-  group_created_at timestamp default CURRENT_TIMESTAMP,
-  group_updated_at timestamp default CURRENT_TIMESTAMP,
+  group_created_at timestamp default localtimestamp,
+  group_updated_at timestamp default localtimestamp,
   group_deleted_at timestamp default null
 );
 
@@ -64,11 +65,16 @@ create table if not exists messages(
   message_text varchar not null,
   is_answer_returned boolean not null default false,
   user_responded_id bigint,
-  message_created_at timestamp default CURRENT_TIMESTAMP,
-  message_updated_at timestamp default CURRENT_TIMESTAMP,
+  message_created_at timestamp default localtimestamp,
+  message_updated_at timestamp default localtimestamp,
   message_deleted_at timestamp default null
 );
 
 
-insert into groups (group_id, group_title, chat_type) 
-  values (-123917638712, 'salom dunyo', 'supergroup');
+
+
+
+
+
+
+-- 1881954930

@@ -1,6 +1,8 @@
 import dotenv from 'dotenv'
 dotenv.config()
 
+const list_limit = 3
+
 const mime_types = {
   cpp: "text/x-c++src",
   c: "text/x-csrc",
@@ -25,5 +27,6 @@ const callback_query = {
 
 export {
   mime_types,
-  callback_query
+  callback_query,
+  list_limit,
 }
