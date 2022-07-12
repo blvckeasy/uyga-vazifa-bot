@@ -98,7 +98,7 @@ bot.on("callback_query", async (callbackQuery) => {
       const opts = {
         inline_keyboard: [
           [
-            {text: "O'chirib yuborish", callback_data: "delete_file"},
+            {text: "O'chirib yuborish", callback_data: `delete_file&&${file_info.id}`},
             {text: "Bekor qilish", callback_data: "cancel&&mute"}
           ]
         ]
@@ -110,13 +110,12 @@ bot.on("callback_query", async (callbackQuery) => {
       }), {
         parse_mode: "HTML"
       })
-
     }
 
-    if (["delete_file"].includes(callbackQuery.data)) {
-      if (!callbackQuery.message.document.file_id) return
-      const file_id = callbackQuery.message.document.file_id
-      const { data, error } = await deleteFileInfo(user_id, file_id)
+    if (["delete_file"].includes(callbackQuery.data.split("&&")[0])) {
+      const id = callbackQuery.data.split("&&")[1]
+      if (!id) return await bot.sendMessage(chat_id, "id not found!")
+      const { error } = await deleteFileInfo(user_id, { id })
       if (error) throw new Error(error.message)
     }
 
@@ -133,22 +132,18 @@ bot.on("callback_query", async (callbackQuery) => {
      })  
     }
 
-    if (callback_query[callbackQuery.data]) {
-      const opts = {
-        inline_keyboard: [
-          // ...
-        ]
-      }
+    if (callback_query[callbackQuery.data?.split("&&")[0]]) {
+      const inline_keyboard = []
 
       await bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id)
       if (callbackQuery.data.split("&&")[1] != "mute") {
         if (["homework", "offer", "question"].includes(callbackQuery.data)) {
-          opts.inline_keyboard.push([{ text: "Bekor qilish", callback_data: "cancel" }])
+          inline_keyboard.push([{ text: "Bekor qilish", callback_data: "cancel" }])
         }
 
-        await bot.answerCallbackQuery(callbackQuery.id).then(() => bot.sendMessage(callbackQuery.message.chat.id, callback_query[callbackQuery.data], {
+        await bot.answerCallbackQuery(callbackQuery.id).then(() => bot.sendMessage(callbackQuery.message.chat.id, callback_query[callbackQuery.data.split("&&")[0]], {
             parse_mode: "HTML",
-            reply_markup: JSON.stringify(opts)
+            reply_markup: JSON.stringify({ inline_keyboard })
         }))
       }
     }

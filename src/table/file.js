@@ -26,9 +26,9 @@ const deleteFileInfo = async (user_id, { id, file_id }) => {
     const data = await db_fetch(`
       UPDATE files SET file_deleted_at = localtimestamp 
       where 
-        user_id = $1 and 
+        user_id = $1 and
         case
-          when $2 > 0 then id = $2 
+          when $2 > 0 then id = $2
           else true
         end and
         case
@@ -49,3 +49,6 @@ export {
   getFiles,
   deleteFileInfo,
 }
+
+
+

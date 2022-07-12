@@ -90,7 +90,7 @@ const listRouteOpts = async (user_id, chat_id) => {
         user_id = $1 AND 
         file_deleted_at is null AND 
         file_created_at > (current_timestamp - interval '2 day') AND
-        is_confirmed = false;
+        is_confirmed = false and file_deleted_at is null;
     `, chat_id)
 
     
