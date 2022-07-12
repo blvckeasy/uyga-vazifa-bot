@@ -22,7 +22,9 @@ const callback_query = {
   offer: `Taklifingizni yozing.`,
   cancel: `Successfully cancelled.`,
   confirmed: `Tasdiqlandi. 36 soat ichida tekshirilinadi.`,
-  reject: `Bekor qilindi.`
+  reject: `Bekor qilindi.`,
+  delete_file: "File o'chirildi",
+  "cancel&&mute": "ok",
 }
 
 export {

@@ -27,10 +27,10 @@ create table if not exists requests (
 
 drop table if exists files cascade;
 create table if not exists files (
+  id bigserial not null, 
   user_id bigint not null references users(user_id),
   file_id varchar not null unique primary key,
   file_orginal_name varchar not null,
-  file_name varchar not null,
   file_path varchar not null,
   mimetype varchar not null,
   file_size bigint not null,

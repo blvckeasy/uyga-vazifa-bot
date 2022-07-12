@@ -9,7 +9,7 @@ const authorizationFunction = async (msg, bot) => {
     const user_id = msg.from.id
     let is_group_member = false
     
-      if (user_id != chat_id) return
+    if (user_id != chat_id) return
     
     const groups = await db_fetchAll(`SELECT * FROM groups WHERE group_deleted_at is null;`)
     const groups_id = groups.map(obj => obj.group_id)
@@ -29,7 +29,7 @@ const authorizationFunction = async (msg, bot) => {
         }
       })
     )
-      
+    
     if (is_group_member) {
       if (msg.text == '/start') {
         const opts = {
@@ -42,7 +42,7 @@ const authorizationFunction = async (msg, bot) => {
             [{ text: 'Bekor qilish ❌', callback_data: 'cancel' }]
           ],
         }
-  
+        
         await bot.sendMessage(chat_id, `Qanday turdagi malumot yubormoxchisiz ?`, {
           reply_markup: JSON.stringify(opts),
         })
@@ -50,9 +50,10 @@ const authorizationFunction = async (msg, bot) => {
 
       if (msg.text == "/list") {
         await updatePageAndLimit(user_id)
-        const { error, opts } = await listRouteOpts(user_id, chat_id)
-        if (error) return await bot.sendMessage(error)
-        
+        const { error, opts, all_keyboard } = await listRouteOpts(user_id, chat_id)
+        if (!all_keyboard.length) return await bot.sendMessage(chat_id, "Siz 2 kun oraligida hech qanday hech qanday vazifa yuklamagansiz.")
+        if (error) throw new Error(error)
+
         await bot.sendMessage(chat_id, '2 kun oraliqda tashlagan uyga vazifalaringiz.', {
           reply_markup: JSON.stringify(opts)
         })
@@ -62,7 +63,7 @@ const authorizationFunction = async (msg, bot) => {
     }
   } catch (error) {
     console.error('controller -> authorizationFunction:', error)
-    return { error: error.message } 
+    return { error: error } 
   }
 }
 
@@ -94,15 +95,17 @@ const listRouteOpts = async (user_id, chat_id) => {
 
     
     const { list_page: page, list_limit: limit } = await getRequest(user_id)
-    const all_keyboard = all_files.map(({file_created_at, file_orginal_name}) =>
-      [{ text: `"${file_orginal_name}"  |  ${dateFormat(Number(file_created_at), 'yyyy-mm-dd HH:MM:ss')}`, callback_data: "user_uploaded_files" }])
+    const all_keyboard = all_files.map(({file_created_at, file_orginal_name, id}) =>
+      [{ text: `"${file_orginal_name}"  |  ${dateFormat(Number(file_created_at), 'yyyy-mm-dd HH:MM:ss')}`, callback_data: `user_uploaded_files&&${id}` }])
     
     const inline_keyboard = all_keyboard.slice(page * limit - limit, limit * page)
     const next_prev = []
     
-    if (!all_keyboard.length) return { error: "Siz 2 kun oraligida hech qanday hech qanday vazifa yuklamagansiz."}
-    if (all_keyboard.slice((page + 1) * limit - limit, limit * (page + 1)).length) next_prev.push({text: "Keyingisi", callback_data: "list_next"})
-    if (all_keyboard.slice((page - 1) * limit - limit, limit * (page - 1)).length) next_prev.push({text: "Olgingisi", callback_data: "list_prev"})
+    if (all_keyboard.length) {
+      if (all_keyboard.slice((page + 1) * limit - limit, limit * (page + 1)).length) next_prev.push({text: "Keyingisi", callback_data: "list_next"})
+      if (all_keyboard.slice((page - 1) * limit - limit, limit * (page - 1)).length) next_prev.push({text: "Olgingisi", callback_data: "list_prev"})
+    }
+
 
     const opts = {
       inline_keyboard: [
@@ -113,7 +116,7 @@ const listRouteOpts = async (user_id, chat_id) => {
     return { opts, all_keyboard }
   } catch (error) {
     console.error('controller -> text -> listRoute:', error)
-    return { error: error.message }
+    return { error: error }
   }
 }
 

@@ -1,9 +1,13 @@
 import TelegramBot from "node-telegram-bot-api"
+import path  from 'path'
 import { messageFunction, authorizationFunction, listRouteOpts, updatePageAndLimit } from "./controller/text.js"
 import { getRequest, updateRequestSelection } from "./table/request.js"
+import { getFiles, deleteFileInfo } from './table/file.js'
 import { textMiddleware } from "./middleware/text.js"
-import { upload } from "./controller/document.js"
+import { insertFileInfo } from "./controller/document.js"
 import { callback_query } from "../config.js"
+import dateFormat from "dateformat"
+
 
 
 const token = process.env.TOKEN
@@ -32,6 +36,7 @@ bot.on("text", async msg => {
     if (!selection) authorizationFunction(msg, bot)
     if (selection == "question") messageFunction(msg, bot, selection, "36 soat ichida ustoz tarafidan javob keladi.")
     if (selection == "offer") messageFunction(msg, bot, selection, "Taklifingiz uchun raxmat :)")
+    if (selection == "homework") await bot.sendMessage(msg.chat.id, "Only file upload!")
   } catch (error) {
     console.error("server -> text:", error.message)
   }
@@ -67,74 +72,88 @@ bot.on("callback_query", async (callbackQuery) => {
     const chat_id = callbackQuery.message.chat.id
     const message_id = callbackQuery.message.message_id
     const message = callbackQuery.message.text
-    await updateRequestSelection(user_id, callbackQuery.data)
+    
+    if (callback_query[callbackQuery.data]) {
+      await updateRequestSelection(user_id, callbackQuery.data)
+    }
 
     // buttons entered after sending the task
     if (callbackQuery.data == "confirmed") {
       if (!callbackQuery.message.from.is_bot || callbackQuery.message.from.id < 0) throw new Error("File upload is not for super group!")
-      await upload(callbackQuery.message, token)
+      // await upload(callbackQuery.message, token, bot)
+      await insertFileInfo(callbackQuery.message, bot)
     }
 
-    if (callbackQuery.data == "confirmed" || callbackQuery.data == "reject" || callbackQuery.data == "cancel") {
+    if (["confirmed", "reject", "cancel", "cancel&&mute", "delete_file"].includes(callbackQuery.data)) {
       await updateRequestSelection(user_id)
     }
 
-    if (callbackQuery.data == "user_uploaded_files") {
-      console.log(callbackQuery)
+    if (callbackQuery.data.split("&&")[0] == "user_uploaded_files") {
+      const id = callbackQuery.data.split("&&")[1]
+
+      const { data: file_info, error } = await getFiles(user_id, { id })
+      if (!file_info) return await bot.sendMessage(chat_id, "File o'chirilgan !")
+      if (error) throw new Error(error.message)
+
+      const opts = {
+        inline_keyboard: [
+          [
+            {text: "O'chirib yuborish", callback_data: "delete_file"},
+            {text: "Bekor qilish", callback_data: "cancel&&mute"}
+          ]
+        ]
+      }
+
+      await bot.answerCallbackQuery(callbackQuery.id).then(() => bot.sendDocument(chat_id, file_info.file_id, {
+        caption: `${file_info.file_caption || ''}\nYaratilgan vaqti:  ${dateFormat(Number(file_info.file_created_at), 'yyyy-mm-dd HH:MM:ss')}` ,
+        reply_markup: JSON.stringify(opts)
+      }), {
+        parse_mode: "HTML"
+      })
+
     }
 
-    if (callbackQuery.data == "list_next") {
-      const { list_page: page } = await getRequest(user_id)
-      await updatePageAndLimit(user_id, page + 1)
-      const { opts } = await listRouteOpts(user_id, chat_id)
+    if (["delete_file"].includes(callbackQuery.data)) {
+      if (!callbackQuery.message.document.file_id) return
+      const file_id = callbackQuery.message.document.file_id
+      const { data, error } = await deleteFileInfo(user_id, file_id)
+      if (error) throw new Error(error.message)
+    }
 
+    if (["list_next", "list_prev"].includes(callbackQuery.data)) {
+      await updateRequestSelection(user_id)
+      const { list_page: page } = await getRequest(user_id)
+      await updatePageAndLimit(user_id, page + (callbackQuery.data == "list_next" ? 1 : -1))
+      const { opts } = await listRouteOpts(user_id, chat_id)
 
       await bot.editMessageText(message, {
         chat_id: chat_id,
         message_id: message_id,
         reply_markup: opts,
-     })
-  
-      await updateRequestSelection(user_id)
+     })  
     }
-
-    if (callbackQuery.data == "list_prev") {
-      const { list_page: page } = await getRequest(user_id)
-      await updatePageAndLimit(user_id, page - 1)
-      const { opts } = await listRouteOpts(user_id, chat_id)
-
-
-      await bot.editMessageText(message, {
-        chat_id: chat_id,
-        message_id: message_id,
-        reply_markup: opts,
-     })
-      await updateRequestSelection(user_id)
-    }
-
 
     if (callback_query[callbackQuery.data]) {
+      const opts = {
+        inline_keyboard: [
+          // ...
+        ]
+      }
+
       await bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id)
-      await bot.answerCallbackQuery(callbackQuery.id).then(() => bot.sendMessage(callbackQuery.message.chat.id, callback_query[callbackQuery.data], {
-          parse_mode: "HTML"
-      }))
+      if (callbackQuery.data.split("&&")[1] != "mute") {
+        if (["homework", "offer", "question"].includes(callbackQuery.data)) {
+          opts.inline_keyboard.push([{ text: "Bekor qilish", callback_data: "cancel" }])
+        }
+
+        await bot.answerCallbackQuery(callbackQuery.id).then(() => bot.sendMessage(callbackQuery.message.chat.id, callback_query[callbackQuery.data], {
+            parse_mode: "HTML",
+            reply_markup: JSON.stringify(opts)
+        }))
+      }
     }
 
   } catch (error) {
     console.error("server.js -> callback_query:", error)
   }
 })
-
-
-
-
-// const func = (d) => {
-//   const date = new Date(d) 
-//   console.log(date.getFullYear() + ':' + String(date.getMonth() - 1).padStart(2, '0') + ':' + String(date.getDate()).padStart(2, '0')) 
-  
-// }
-// import dateFormat from 'dateformat';
-// var now = new Date();
-// const a = dateFormat(1657010472, "dddd, mmmm dS, yyyy, h:MM:ss TT");
-// console.log(a)
-// func(Date.now())
