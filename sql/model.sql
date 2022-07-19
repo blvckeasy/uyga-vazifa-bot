@@ -8,7 +8,8 @@ create table if not exists users (
   first_name varchar,
   last_name varchar,
   username varchar,
-  user_type varchar not null default 'user',
+  role varchar not null default 'student',
+  group_id bigint not null references groups(group_id),
   user_created_at timestamp default localtimestamp,
   user_updated_at timestamp default localtimestamp,
   user_deleted_at timestamp default null
