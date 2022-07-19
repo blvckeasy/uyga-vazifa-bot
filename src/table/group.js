@@ -1,25 +1,24 @@
 import { db_fetch, db_fetchAll } from "../utils/pg.js";
 
-const getAllGroups = async (user_id) => {
+const getAllGroups = async (user_id, bot) => {
   try {
-    const all_groups = await db_fetchAll(`
+    const user_follow_groups = [];
+    const groups = await db_fetchAll(`
       SELECT * FROM groups
         WHERE group_deleted_at is null;
     `);
 
-    const user_follow_groups = [];
-
     if (user_id) {
-      await Promise.all(all_groups.forEach(async (group) => {
+      for (const group of groups) {
         try {
-          await getChatMember(group.group_id, user_id);
+          await bot.getChatMember(group.group_id, user_id);
           user_follow_groups.push(group);
         } catch (error) { null; }
-      }));
+      }
       return { data: user_follow_groups };
     }
 
-    return { data: all_groups };
+    return { data: groups };
   } catch (error) {
     console.error('table -> group.js -> getAllGroup:', error.message);
     return { error };

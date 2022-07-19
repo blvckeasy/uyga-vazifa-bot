@@ -4,12 +4,12 @@ SET client_encoding = 'UTF8';
 drop table if exists users cascade;
 create table if not exists users (
   user_id bigint not null unique primary key,
-  chat_id bigint not null unique, 
+  chat_id bigint not null unique,
+  group_id bigint not null references groups(group_id),
   first_name varchar,
   last_name varchar,
   username varchar,
   role varchar not null default 'student',
-  group_id bigint not null references groups(group_id),
   user_created_at timestamp default localtimestamp,
   user_updated_at timestamp default localtimestamp,
   user_deleted_at timestamp default null

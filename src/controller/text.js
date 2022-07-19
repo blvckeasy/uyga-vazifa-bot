@@ -14,27 +14,11 @@ const authorizationFunction = async (msg, bot) => {
 
     if (user_id != chat_id) return;
 
-    const { data: groups } = await getAllGroups();
-    const groups_id = groups.map(obj => obj.group_id);
+    const { data: user_follow_groups } = await getAllGroups(user_id, bot);
 
-    await Promise.all(
-      groups_id.map(async group_id => {
-        try {
-          const data = {
-            [group_id]: await bot.getChatMember(group_id, user_id),
-          };
-          is_group_member = true;
-          return data;
-        } catch (error) {
-          return {
-            [group_id]: undefined,
-          };
-        }
-      })
-    );
+    // console.log(user_follow_groups);
 
-    if (is_group_member) {
-
+    if (user_follow_groups.length) {
       const { data: { role }, error } = await getUser(user_id);
       if (error) return; // server error
 
@@ -56,7 +40,7 @@ const authorizationFunction = async (msg, bot) => {
       }
 
       if (msg.text == "/start" && ["admin"].includes(role)) {
-        const { data: user_follow_groups } = await getAllGroups();
+        const { data: user_follow_groups } = await getAllGroups(user_id, bot);
         console.log(user_follow_groups);
       }
 

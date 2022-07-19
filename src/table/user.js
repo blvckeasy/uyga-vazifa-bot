@@ -1,4 +1,4 @@
-import { db_fetch, db_fetchAll } from "../utils/pg.js"
+import { db_fetch, db_fetchAll } from "../utils/pg.js";
 
 const getUser = async (user_id, { role } = {}) => {
   try {
@@ -10,28 +10,35 @@ const getUser = async (user_id, { role } = {}) => {
           when length($2) > 0 then role = $2
           else true
         end and user_deleted_at is null;
-    `, user_id, role)
+    `, user_id, role);
 
-    return { data }
+    return { data };
   } catch (error) {
-    console.error('table -> user.js -> getUser:', error.message)
-    return { error }
+    console.error('table -> user.js -> getUser:', error.message);
+    return { error };
   }
-}
+};
 
-const getRoleAdmin = async () => {
+const updateUser = async (user_id, { group_id } = {}) => {
   try {
     const data = await db_fetch(`
-      select * from users
-      where
-        
-    `)
+      update users set
+      group_id = case
+        when $1::bigint > 0 then $1::bigint
+        else group_id
+      end
+      where user_deleted_at is null
+      returning *;
+    `, group_id);
+
+    return { data };
   } catch (error) {
-    console.error('table -> user.js -> getRoleAdmin:', error.message)
-    return { error }
+    console.error('table -> user.js -> updateUser:', error.message);
+    return { error };
   }
-}
+};
 
 export {
   getUser,
-}
+  updateUser,
+};
