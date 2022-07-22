@@ -25,6 +25,18 @@ const getAllGroups = async (user_id, bot) => {
   }
 };
 
+const getGroup = async (group_id) => {
+  try {
+    const data = await db_fetch(`
+      select * from groups where 
+        group_id = $1 and group_deleted_at is null; 
+    `, group_id);
+    return { data };
+  } catch (error) {
+    return { error };
+  }
+};
+
 const getUserFollowingGroup = async (bot, user_id) => {
   try {
     const { data: groups } = await getAllGroups();
@@ -50,9 +62,8 @@ const getUserFollowingGroup = async (bot, user_id) => {
   }
 };
 
-getUserFollowingGroup(1881954930);
-
 
 export {
   getAllGroups,
+  getGroup,
 };

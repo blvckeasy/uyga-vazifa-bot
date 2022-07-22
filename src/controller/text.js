@@ -3,57 +3,51 @@ import { db_fetch, db_fetchAll } from '../utils/pg.js';
 import { getRequest, updateRequestSelection } from "../table/request.js";
 import { list_limit } from "../../config.js";
 import { getUser } from '../table/user.js';
-import { getAllGroups } from "../table/group.js";
+import { getAllGroups, getGroup } from "../table/group.js";
+import { updateMessage } from '../table/message.js'
 
 
 const authorizationFunction = async (msg, bot) => {
   try {
     const chat_id = msg.chat.id;
     const user_id = msg.from.id;
-    let is_group_member = false;
 
     if (user_id != chat_id) return;
-
     const { data: user_follow_groups } = await getAllGroups(user_id, bot);
 
-    // console.log(user_follow_groups);
-
-    if (user_follow_groups.length) {
+    if (user_follow_groups?.length) {
       const { data: { role }, error } = await getUser(user_id);
       if (error) return; // server error
-
-      if (msg.text == "/start" && ["student"].includes(role)) {
-        const opts = {
-          inline_keyboard: [
-            [
-              { text: 'Savol ❓', callback_data: 'question' },
-              { text: 'Taklif ➕', callback_data: 'offer' },
-              { text: 'Uyga vazifa 🏘', callback_data: 'homework' },
+      
+      if (["student"].includes(role)) {
+        if (msg.text == '/start') {
+          const opts = {
+            inline_keyboard: [
+              [
+                { text: 'Savol ❓', callback_data: 'question' },
+                { text: 'Taklif ➕', callback_data: 'offer' },
+                { text: 'Uyga vazifa 🏘', callback_data: 'homework' },
+              ],
+              [{ text: 'Bekor qilish ❌', callback_data: 'cancel' }]
             ],
-            [{ text: 'Bekor qilish ❌', callback_data: 'cancel' }]
-          ],
-        };
+          };
+    
+          await bot.sendMessage(chat_id, `Qanday turdagi malumot yubormoxchisiz ?`, {
+            reply_markup: JSON.stringify(opts),
+          });
+        }
 
-        await bot.sendMessage(chat_id, `Qanday turdagi malumot yubormoxchisiz ?`, {
-          reply_markup: JSON.stringify(opts),
-        });
-      }
-
-      if (msg.text == "/start" && ["admin"].includes(role)) {
-        const { data: user_follow_groups } = await getAllGroups(user_id, bot);
-        console.log(user_follow_groups);
-      }
-
-      if (msg.text == "/list" && ["student"].includes(role)) {
-        await updatePageAndLimit(user_id);
-        const { error, opts, all_keyboard } = await listRouteOpts(user_id, chat_id);
-        if (!all_keyboard.length) return await bot.sendMessage(chat_id, "Siz 2 kun oraligida hech qanday hech qanday vazifa yuklamagansiz.");
-        if (error) throw new Error(error);
-
-        await bot.sendMessage(chat_id, '2 kun oraliqda tashlagan uyga vazifalaringiz.', {
-          reply_markup: JSON.stringify(opts)
-        });
-      }
+        if (msg.text == "/list") {
+          await updatePageAndLimit(user_id);
+          const { error, opts, all_keyboard } = await listRouteOpts(user_id, chat_id);
+          if (!all_keyboard.length) return await bot.sendMessage(chat_id, "Siz 2 kun oraligida hech qanday hech qanday vazifa yuklamagansiz.");
+          if (error) throw new Error(error);
+    
+          await bot.sendMessage(chat_id, '2 kun oraliqda tashlagan uyga vazifalaringiz.', {
+            reply_markup: JSON.stringify(opts)
+          });
+        }
+      }    
     } else {
       await bot.sendMessage(chat_id, 'Guruhlardan topilmadingiz.');
     }
@@ -65,18 +59,81 @@ const authorizationFunction = async (msg, bot) => {
 
 const messageFunction = async (msg, bot, message_type, send_message_text) => {
   try {
+    const user_id = msg.from.id;
+    const chat_id = msg.chat.id;
+
     await db_fetch(`
       insert into messages 
-        (message_id, user_id, first_name, last_name, username, message_type, message_text)
-      values ($1, $2, $3, $4, $5, $6, $7) returning *;
-    `, msg.message_id, msg.from.id, msg.from.first_name, msg.from.last_name, msg.from.username, message_type, msg.text);
+        (message_id, user_id, message_type, message_text)
+      values ($1, $2, $3, $4) returning *;
+    `, msg.message_id, msg.from.id, message_type, msg.text);
 
-    await bot.sendMessage(msg.chat.id, send_message_text);
-    await updateRequestSelection(msg.chat.id);
+    // user jonatgan malumotni ozining assistentini group_id si bo'yicha qidirib jonatadi
+    const user = await db_fetch(`
+      select * from users where 
+        user_id = $1 and role = 'student' and user_deleted_at is null;
+    `, user_id);
+
+    const assistant = await db_fetch(`
+      select * from users where 
+        group_id = $1 and role = 'admin' and user_deleted_at is null;
+    `, user.group_id);
+
+    const { data: group_info } = await getGroup(user.group_id);
+
+    const message = `
+      #${message_type}: "${msg.text}"
+
+  User:
+      id: "${user.user_id}"
+      firstname: "${user.first_name}"
+      lastname: "${user.last_name || ""}"
+      username: "${user.username || ""}"
+  Group:
+      id: "${group_info.group_id}"
+      title: "${group_info.group_title}"
+      link: "${group_info.group_link || ""}"
+      `;
+
+    const opts = {
+      inline_keyboard: [
+        [
+          { text: 'Javob berish', callback_data: `answer_the_request&&${msg.message_id}` },
+          { text: 'Bekor qilish', callback_data: 'cancel' }
+        ],
+      ],
+    };
+
+    await bot.sendMessage(assistant.chat_id, message, {
+      reply_markup: JSON.stringify(opts)
+    });
+    await bot.sendMessage(chat_id, send_message_text);
+    await updateRequestSelection(chat_id);
   } catch (error) {
+    console.error('controllers -> text -> messageFunction:', error)
     return { error: error.message };
   }
 };
+
+
+const adminMessageFunction = async (msg, bot, message_id, send_message_text) => {
+  try {
+    
+    const assistant_id = msg.from.id;
+    const assistant_reply_message = msg.text;
+    const { data: updated_message } = await updateMessage(message_id, { assistant_id, assistant_reply_message })
+    const { data: assistant } = await getUser(assistant_id) 
+    const text = `
+      #${updated_message.message_type}: "${updated_message.message_text}"\n#Javob: "${assistant_reply_message}"\n\nassistant: ${assistant.first_name} ${assistant.last_name || ""}
+    `
+
+    await bot.sendMessage(assistant_id, send_message_text)
+    await bot.sendMessage(updated_message.user_id, text);
+  } catch (error) {
+    console.error('controllers -> text -> adminMessageFunction:', error)
+    return { error }
+  }
+}
 
 
 const listRouteOpts = async (user_id, chat_id) => {
@@ -143,4 +200,5 @@ export {
   messageFunction,
   listRouteOpts,
   updatePageAndLimit,
+  adminMessageFunction,
 };

@@ -59,13 +59,10 @@ drop table if exists messages cascade;
 create table if not exists messages(
   message_id bigint not null unique,
   user_id bigint not null references users(user_id),
-  first_name varchar,
-  last_name varchar,
-  username varchar,
+  assistant_id bigint,
   message_type varchar default 'question', 
   message_text varchar not null,
-  is_answer_returned boolean not null default false,
-  user_responded_id bigint,
+  assistant_reply_message varchar default null,
   message_created_at timestamp default localtimestamp,
   message_updated_at timestamp default localtimestamp,
   message_deleted_at timestamp default null

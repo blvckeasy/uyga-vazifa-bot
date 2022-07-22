@@ -24,6 +24,7 @@ const callback_query = {
   confirmed: `Tasdiqlandi. 36 soat ichida tekshirilinadi.`,
   reject: `Bekor qilindi.`,
   delete_file: "File o'chirildi",
+  answer_the_request: "Javobingizni yozing.",
   "cancel&&mute": "ok",
 }
 

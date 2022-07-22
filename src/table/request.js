@@ -2,12 +2,13 @@ import { db_fetch } from '../utils/pg.js'
 
 const getRequest = async (user_id) => {
   try {
+
     const request = await db_fetch(`
       SELECT * FROM requests 
       WHERE 
         user_id = $1 and request_deleted_at is null;
       `, user_id)
-    return request || {}
+    return { data: request || {}}
   } catch (error) {
     console.error('request -> getRequest:', error)
     return {error: error.message}

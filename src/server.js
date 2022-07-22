@@ -1,6 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
 import dateFormat from "dateformat";
-import { messageFunction, authorizationFunction, listRouteOpts, updatePageAndLimit } from "./controller/text.js";
+import { messageFunction, authorizationFunction, listRouteOpts, updatePageAndLimit, adminMessageFunction } from "./controller/text.js";
 import { getRequest, updateRequestSelection } from "./table/request.js";
 import { getFiles, deleteFileInfo } from './table/file.js';
 import { textMiddleware } from "./middleware/text.js";
@@ -19,6 +19,7 @@ const bot = new TelegramBot(token, {
 bot.on("message", async msg => {
   try {
     const { error } = await textMiddleware(msg, bot);
+    if (error) throw new Error(error)
   } catch (error) {
     console.error("server -> message:", error);
   }
@@ -27,13 +28,18 @@ bot.on("message", async msg => {
 bot.on("text", async msg => {
   try {
     if (msg.chat.type == "supergroup") return;
-    const { selection } = await getRequest(msg.chat.id);
+    const { data: { selection } } = await getRequest(msg.chat.id);
 
+    
+
+    if (!selection) return authorizationFunction(msg, bot);
     if (msg.from.is_bot) throw new Error("You are bot -_-");
-    if (!selection) authorizationFunction(msg, bot);
-    if (selection == "question") messageFunction(msg, bot, selection, "36 soat ichida ustoz tarafidan javob keladi.");
-    if (selection == "offer") messageFunction(msg, bot, selection, "Taklifingiz uchun raxmat :)");
-    if (selection == "homework") await bot.sendMessage(msg.chat.id, "Only file upload!");
+    if (selection == "question") return messageFunction(msg, bot, selection, "36 soat ichida ustoz tarafidan javob keladi.");
+    if (selection == "offer") return messageFunction(msg, bot, selection, "Taklifingiz uchun raxmat :)");
+    if (selection.split("&&")[0] == "answer_the_request") return adminMessageFunction(msg, bot, selection.split("&&")[1], "Jonatilindi");
+    if (selection == "homework") return await bot.sendMessage(msg.chat.id, "Only file upload!");
+
+
   } catch (error) {
     console.error("server -> text:", error.message);
   }
@@ -41,7 +47,7 @@ bot.on("text", async msg => {
 
 bot.on("document", async document => {
   try {
-    const { selection } = await getRequest(document.chat.id);
+    const { data: { selection } } = await getRequest(document.chat.id);
 
     if (selection == "homework") {
       const opts = {
@@ -109,6 +115,10 @@ bot.on("callback_query", async (callbackQuery) => {
       });
     }
 
+    if (["answer_the_request"].includes(callbackQuery.data.split("&&")[0])) {
+      await updateRequestSelection(user_id, callbackQuery.data);
+    }
+
     if (["delete_file"].includes(callbackQuery.data.split("&&")[0])) {
       const id = callbackQuery.data.split("&&")[1];
       if (!id) return await bot.sendMessage(chat_id, "id not found!");
@@ -118,7 +128,7 @@ bot.on("callback_query", async (callbackQuery) => {
 
     if (["list_next", "list_prev"].includes(callbackQuery.data)) {
       await updateRequestSelection(user_id);
-      const { list_page: page } = await getRequest(user_id);
+      const { data: { list_page: page } } = await getRequest(user_id);
       await updatePageAndLimit(user_id, page + (callbackQuery.data == "list_next" ? 1 : -1));
       const { opts } = await listRouteOpts(user_id, chat_id);
 
